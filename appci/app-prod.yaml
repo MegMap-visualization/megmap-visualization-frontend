@@ -1,0 +1,49 @@
+name: map-cloud-prod                 # [required] 应用名称，全局唯一，不允许重名
+runtime: vue                               # 运行时语言，可以不填
+
+atp:
+  - appci/atp-npm.yaml
+
+web:                                          # 类型为 web 的组件列表，作用是对外提供 HTTP 服务，内部域名为 ${appName}.mcd.megvii-inc.com
+  - name: main                               # [required] 名称，同一个 app 下的 web 不能重名
+    # image: xxx                                # 指定镜像名，推荐不填
+    path: /                                # pathname 可以省略，默认为 /
+    external_domains:                         # 外部域名
+      # - worker.megyueying.com
+      # - operation.megyueying.com
+      # - req.megyueying.com
+    cmd: nginx -g "daemon off;"      # 运行命令，如果没有填写 backend 字段则此字段必须填写
+    # backend: megvii.com                       # rewrite 到的后端 url，如果没有填写 cmd 字段则此字段必须填写
+    port:                                     # [required] 端口列表，格式为 servicePort:processPort/protocol
+      # processPort 是指你的进程监听的端口，servicePort 可以随便填一个，protocol 选填，默认为 TCP
+      # 如果只写了一个端口，则代表 servicePort 和 processPort 相同
+      # 例子:
+      #     8080:7777 是指 servicePort = 8080, processPort = 7777, protocol = TCP
+      #     8080:7777/UDP 是指 servicePort = 8080, processPort = 7777, protocol = UDP
+      #     8080 是指 servicePort = 8080, processPort = 8080, protocol = TCP
+      #     8080/UDP 是指 servicePort = 8080, processPort = 8080, protocol = UDP
+      - 80:80
+
+    # external_port:                            # 外部端口列表。仅针对阿里云集群的外网访问设置，格式为 externalPort:processPort/protocol, processPort 必须与进程监听端口相同例如上面的 7777，externalPort 是指外网访问端口（不可重复，且大于等于 30000）
+    #                                           # 格式与上面的 port 格式相同，也可以指定 protocol，默认 protocol 为 TCP
+    #   - 33000:7777
+    liveness_probe:                           # [app + service 都有的一个 section] 健康检查的探针，分为 liveness_probe 和 readiness_probe，分别对应检测是否或者和检测是否准备就绪，可以省略，省略的话 mcd 会自动注入健康检查
+      initial_delay_seconds: 5                # 默认为5s
+      period_seconds: 10                      # 默认为10s
+      timeout_seconds: 5                      # 默认为5s
+      failure_threshold: 6                    # 默认为6次
+      http_get:
+        path: /
+        port: 80
+    readiness_probe:                           # [app + service 都有的一个 section] 健康检查的探针，分为 liveness_probe 和 readiness_probe，分别对应检测是否或者和检测是否准备就绪，可以省略，省略的话 mcd 会自动注入健康检查
+      initial_delay_seconds: 5                # 默认为5s
+      period_seconds: 10                      # 默认为10s
+      timeout_seconds: 5                      # 默认为5s
+      failure_threshold: 6                    # 默认为6次
+      http_get:
+        path: /
+        port: 80
+mount:
+  - name: map-cloud-prod-nginx-conf
+    path: /etc/nginx/conf.d/map-cloud-prod.conf
+    value_from: map-cloud-prod.conf

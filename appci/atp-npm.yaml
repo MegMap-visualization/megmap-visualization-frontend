@@ -1,0 +1,14 @@
+name: _mcd_app_default_workflow_
+
+jobs:
+  docker-build:
+    cache:
+      - node_modules:/atp-ci/job/code/node_modules
+    steps:
+      - name: checkout
+        uses: atp.step/checkout@latest   # 这个步骤使用专用打包的镜像
+      - name: build-image
+        uses: atp.step/dockerfile@node-16
+        resources:
+          cpu: 2000m
+          memory: 8Gi
